@@ -1,0 +1,67 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: budget_tracker_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-budget_tracker}
+      MYSQL_USER: ${DB_USER:-budget_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-budget_password}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - budget_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: budget_tracker_app
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-budget_user}
+      DB_PASSWORD: ${DB_PASSWORD:-budget_password}
+      DB_NAME: ${DB_NAME:-budget_tracker}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - budget_network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: budget_tracker_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: ${DB_USER:-budget_user}
+      PMA_PASSWORD: ${DB_PASSWORD:-budget_password}
+      UPLOAD_LIMIT: 100M
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - budget_network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  budget_network:
+    driver: bridge
