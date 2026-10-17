@@ -1,15 +1,17 @@
 # Personal Budget Tracker
 
-A comprehensive personal finance application built with Streamlit that helps you track your income, expenses, and savings across different months of the year.
+A comprehensive personal finance application built with Streamlit that helps you track your income, expenses, and savings across different months and years.
 
 ## Features
 
 - 📅 Monthly budget tracking for all 12 months
+- 🗓️ Year-based budgeting and reporting (2020-2030)
 - 💰 Budget vs. Actual spending comparison
 - 📊 Interactive charts and visualizations
 - 💾 Local database storage (MySQL)
-- 📈 Annual overview and trends
+- 📈 Annual overview with multi-year comparison
 - 📥/📤 Data import/export capabilities
+- 🔄 Year-specific data persistence
 
 ## Prerequisites
 
@@ -119,9 +121,11 @@ A comprehensive personal finance application built with Streamlit that helps you
 
 **Using the application** (applies to both Docker and local setup):
 - Select a month from the sidebar
+- Select a year from the dropdown (default: 2026)
 - Enter your budgeted and actual amounts
-- Click "Save Changes" to update the database
+- Click "Save Budget Expenses" to update the database
 - View spending breakdowns in the charts section
+- Use the Annual Overview to see yearly trends and multi-year comparisons
 
 ## Features in Detail
 
@@ -130,24 +134,45 @@ A comprehensive personal finance application built with Streamlit that helps you
 - Track budgeted vs. actual spending
 - Automatic calculation of totals and differences
 - Visual spending breakdown by category
+- Year-specific budgeting (data persists per year)
+- Income tracking with edit capability
 
 ### Annual Overview
 - View spending trends over the year
 - Compare monthly budgets and actuals
 - Track savings rate over time
+- Total income, budgeted, spent, and savings metrics
+- Monthly spending trend charts
+- Spending by category analysis
+- Budget vs actual by month visualization
+- Top spending categories identification
+- Detailed monthly breakdown table
+
+### Multi-Year Comparison
+- Compare spending across multiple years
+- Total spending by year bar chart
+- Monthly spending comparison across years
+- Category spending comparison by year
+- Year-over-year summary table with budgeted, actual, and differences
 
 ### Data Management
 - Export data to Excel or CSV
 - Import data from existing spreadsheets
-- Reset budget for any month
+- Reset budget for any month/year
+- Year-specific data isolation (switching years doesn't affect other years)
 
 ## Database Schema
 
 The application uses the following database structure:
 
-- **months**: Stores month names and IDs
-- **budget**: Tracks budgeted and actual amounts for each category and month
-- **expenses**: Stores individual expense records with descriptions and dates
+- **months**: Stores month names and IDs (1-12)
+- **budget**: Tracks budgeted and actual amounts for each category, month, and year
+- **expenses**: Stores individual expense records with descriptions, dates, categories, and years
+
+### Key Schema Features:
+- Each budget and expense record includes a `year` column for multi-year tracking
+- Unique constraint on (month_id, category, year) to prevent duplicate entries
+- MySQL triggers automatically update budget actual amounts when expenses are added/deleted
 
 ## Docker Architecture
 

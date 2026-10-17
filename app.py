@@ -180,10 +180,10 @@ def display_expenses(month_id, category, year):
         with col2:
             st.write(f"${float(expense['amount']):.2f}")
         with col3:
-            if st.button("✏️", key=f"edit_{expense['id']}"):
+            if st.button("✏️", key=f"edit_{expense['id']}_{selected_year}"):
                 st.session_state.editing_expense = expense['id']
         with col4:
-            if st.button("🗑️", key=f"delete_{expense['id']}"):
+            if st.button("🗑️", key=f"delete_{expense['id']}_{selected_year}"):
                 if db_utils.delete_expense(expense['id']):
                     st.rerun()
         
@@ -237,26 +237,29 @@ if menu == "Monthly Budget":
         income_row = df[df['category'] == 'Income'].iloc[0] if not df[df['category'] == 'Income'].empty else None
         if income_row is not None:
             st.markdown("### Income")
-            
+
+            # Use year-specific session state key for income editing
+            income_edit_key = f'editing_income_{selected_year}_{month_id}'
+
             # Initialize session state for edit mode
-            if 'editing_income' not in st.session_state:
-                st.session_state.editing_income = False
-            
+            if income_edit_key not in st.session_state:
+                st.session_state[income_edit_key] = False
+
             cols = st.columns([3, 2, 1])
             with cols[0]:
                 st.markdown(f"**Income**")
-            
-            if st.session_state.editing_income:
+
+            if st.session_state[income_edit_key]:
                 with cols[1]:
                     new_income = st.number_input(
                         "New Income Amount",
                         min_value=0.0,
                         step=100.0,
                         value=float(income_row['actual']),
-                        key="new_income_input"
+                        key=f"new_income_input_{selected_year}_{month_id}"
                     )
                 with cols[2]:
-                    if st.button("💾 Save"):
+                    if st.button("💾 Save", key=f"save_income_{selected_year}_{month_id}"):
                         # Update both budgeted and actual income amounts
                         if db_utils.update_budget(
                             month_id=month_id,
@@ -265,74 +268,77 @@ if menu == "Monthly Budget":
                             is_income=True,
                             year=selected_year
                         ):
-                            st.session_state.editing_income = False
+                            st.session_state[income_edit_key] = False
                             st.rerun()
-                    if st.button("❌ Cancel"):
-                        st.session_state.editing_income = False
+                    if st.button("❌ Cancel", key=f"cancel_income_{selected_year}_{month_id}"):
+                        st.session_state[income_edit_key] = False
                         st.rerun()
             else:
                 with cols[1]:
                     # Always show the actual amount, not the budgeted amount
                     st.markdown(f"**${float(income_row['actual']):,.2f}**")
                 with cols[2]:
-                    if st.button("✏️ Edit", key="edit_income_btn"):
-                        st.session_state.editing_income = True
+                    if st.button("✏️ Edit", key=f"edit_income_btn_{selected_year}_{month_id}"):
+                        st.session_state[income_edit_key] = True
                         st.rerun()
             
             st.markdown("---")
         
         # Display budget expenses section
         st.markdown("### Budget Expenses")
-        
-        # Initialize edited values if not exists
-        if 'edited_budget_values' not in st.session_state:
-            st.session_state.edited_budget_values = {}
-        
+
+        # Use year-specific session state key
+        budget_state_key = f'edited_budget_values_{selected_year}_{month_id}'
+
+        # Initialize edited values if not exists for this year/month
+        if budget_state_key not in st.session_state:
+            st.session_state[budget_state_key] = {}
+
         # Calculate totals for reference
         total_budgeted = 0.0
         total_actual = 0.0
-        
+
         # Create a form for all budget entries
         with st.form("budget_form"):
             for _, row in editable_df.iterrows():
                 category = row['category']
                 # Initialize session state for this category if not exists
-                if category not in st.session_state.edited_budget_values:
-                    st.session_state.edited_budget_values[category] = float(row['budgeted'])
-                
+                if category not in st.session_state[budget_state_key]:
+                    st.session_state[budget_state_key][category] = float(row['budgeted'])
+
                 cols = st.columns([3, 1, 1])
                 with cols[0]:
                     st.markdown(f"**{category}**")
                 with cols[1]:
                     # Make budgeted amount editable
-                    st.session_state.edited_budget_values[category] = st.number_input(
+                    st.session_state[budget_state_key][category] = st.number_input(
                         label=f"Budget for {category}",
                         min_value=0.0,
                         step=1.0,
-                        value=st.session_state.edited_budget_values[category],
-                        key=f"budget_edit_{category}",
+                        value=st.session_state[budget_state_key][category],
+                        key=f"budget_edit_{category}_{selected_year}_{month_id}",
                         label_visibility="collapsed"
                     )
-                    total_budgeted += st.session_state.edited_budget_values[category]
+                    total_budgeted += st.session_state[budget_state_key][category]
                 with cols[2]:
                     # Display actual spending with color coding
                     actual = float(row['actual'])
                     total_actual += actual
-                    budgeted = st.session_state.edited_budget_values[category]
+                    budgeted = st.session_state[budget_state_key][category]
                     diff = actual - budgeted
-                    
+
                     if diff > 0:
                         st.markdown(f"<span style='color:red'>${actual:,.2f} (${diff:,.2f} over)</span>", unsafe_allow_html=True)
                     elif diff < 0:
                         st.markdown(f"<span style='color:green'>${actual:,.2f} (${abs(diff):,.2f} under)</span>", unsafe_allow_html=True)
                     else:
                         st.markdown(f"${actual:,.2f} (on budget)")
-            
+
             # Add save button at the bottom of the form
             submitted = st.form_submit_button("💾 Save Budget Expenses", use_container_width=True)
             if submitted:
                 success = True
-                for category, budgeted in st.session_state.edited_budget_values.items():
+                for category, budgeted in st.session_state[budget_state_key].items():
                     if not db_utils.update_budget(
                         month_id=month_id,
                         category=category,
@@ -341,11 +347,11 @@ if menu == "Monthly Budget":
                     ):
                         st.error(f"Failed to update {category} budget.")
                         success = False
-                
+
                 if success:
                     st.success("Budget expenses updated successfully!")
-                    # Clear the edited values from session state
-                    del st.session_state.edited_budget_values
+                    # Clear the edited values from session state for this year/month
+                    del st.session_state[budget_state_key]
                     st.rerun()
             
             # Add a small divider between categories
