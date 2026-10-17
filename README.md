@@ -30,7 +30,7 @@ A comprehensive personal finance application built with Streamlit that helps you
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Maxuimhunter/Financial-Pilot
    cd budget-tracker
    ```
 
