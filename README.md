@@ -12,6 +12,7 @@ A comprehensive personal finance application built with Streamlit that helps you
 - 📈 Annual overview with multi-year comparison
 - 📥/📤 Data import/export capabilities
 - 🔄 Year-specific data persistence
+- 🤖 AI-powered financial advice (ChatGPT integration)
 
 ## Prerequisites
 
@@ -39,6 +40,7 @@ A comprehensive personal finance application built with Streamlit that helps you
    cp .env.docker .env
    ```
    - Edit `.env` if you want to customize the database credentials
+   - Add your OpenAI API key to `.env` to enable AI Advisor feature (get key from https://platform.openai.com/api-keys)
 
 3. **Start the application**
    ```bash
@@ -160,6 +162,12 @@ A comprehensive personal finance application built with Streamlit that helps you
 - Import data from existing spreadsheets
 - Reset budget for any month/year
 - Year-specific data isolation (switching years doesn't affect other years)
+
+### AI Financial Advisor
+- Get personalized financial advice powered by ChatGPT
+- Analyzes your budget data and provides actionable recommendations
+- Focuses on spending patterns, savings, and areas for improvement
+- Requires OpenAI API key (add to .env file)
 
 ## Database Schema
 

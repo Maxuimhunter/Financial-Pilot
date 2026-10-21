@@ -6,3 +6,4 @@ mysql-connector-python==8.1.0
 python-dotenv==1.0.0
 streamlit-option-menu==0.3.6
 pyarrow==14.0.1
+openai==1.12.0

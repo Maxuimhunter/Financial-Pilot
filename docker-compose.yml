@@ -35,6 +35,7 @@ services:
       DB_USER: ${DB_USER:-budget_user}
       DB_PASSWORD: ${DB_PASSWORD:-budget_password}
       DB_NAME: ${DB_NAME:-budget_tracker}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     depends_on:
       mysql:
         condition: service_healthy

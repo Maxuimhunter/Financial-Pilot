@@ -6,9 +6,14 @@ import db_utils
 from streamlit_option_menu import option_menu
 import os
 import warnings
+from dotenv import load_dotenv
+from openai import OpenAI
 
 # Suppress FutureWarning for pandas concat
 warnings.filterwarnings('ignore', category=FutureWarning)
+
+# Load environment variables
+load_dotenv()
 
 # Page configuration
 st.set_page_config(
@@ -90,6 +95,54 @@ def calculate_summary(df):
             'savings_rate': 0.0
         }
 
+def get_ai_financial_advice(budget_data, month, year):
+    """Get AI-powered financial advice using ChatGPT."""
+    api_key = os.getenv('OPENAI_API_KEY')
+
+    if not api_key:
+        return "OpenAI API key not found. Please add OPENAI_API_KEY to your .env file."
+
+    try:
+        client = OpenAI(api_key=api_key)
+
+        # Format budget data for the prompt
+        budget_summary = f"""
+Budget for {month} {year}:
+- Total Budgeted: ${budget_data.get('total_budgeted', 0):,.2f}
+- Total Spent: ${budget_data.get('total_actual', 0):,.2f}
+- Difference: ${budget_data.get('difference', 0):,.2f}
+- Savings Rate: {budget_data.get('savings_rate', 0):.1f}%
+"""
+
+        prompt = f"""
+You are a financial advisor. Based on the following budget data, provide 3-5 concise, actionable financial tips.
+
+{budget_summary}
+
+Focus on:
+1. Spending patterns
+2. Savings recommendations
+3. Areas for improvement
+4. Practical advice
+
+Keep your response under 200 words and use bullet points.
+"""
+
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful financial advisor."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=300,
+            temperature=0.7
+        )
+
+        return response.choices[0].message.content
+
+    except Exception as e:
+        return f"Error getting AI advice: {str(e)}"
+
 # Sidebar
 with st.sidebar:
     st.title("💰 Budget Tracker")
@@ -111,8 +164,8 @@ with st.sidebar:
     # Navigation
     menu = option_menu(
         menu_title=None,
-        options=["Monthly Budget", "Annual Overview", "Settings"],
-        icons=["calendar-month", "graph-up", "gear"],
+        options=["Monthly Budget", "Annual Overview", "AI Advisor", "Settings"],
+        icons=["calendar-month", "graph-up", "robot", "gear"],
         default_index=0
     )
 
@@ -946,7 +999,47 @@ elif menu == "Annual Overview":
                 "Difference": st.column_config.NumberColumn("Difference ($)", format="%.2f")
             }
         )
-    
+
+elif menu == "AI Advisor":
+    st.title("🤖 AI Financial Advisor")
+    st.markdown("Get personalized financial advice based on your budget data.")
+
+    # Select month for advice
+    advice_month = st.selectbox("Select Month", MONTHS, index=datetime.now().month - 1)
+
+    # Get budget data for the selected month and year
+    month_id = get_month_id(advice_month)
+    df = db_utils.get_month_budget(month_id, selected_year)
+
+    if not df.empty:
+        # Calculate summary
+        summary = calculate_summary(df)
+
+        # Display current budget summary
+        st.subheader(f"Budget Summary for {advice_month} {selected_year}")
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Total Budgeted", f"${summary['total_budgeted']:,.2f}")
+        col2.metric("Total Spent", f"${summary['total_actual']:,.2f}")
+        col3.metric("Difference", f"${summary['difference']:,.2f}")
+        col4.metric("Savings Rate", f"{summary['savings_rate']:.1f}%")
+
+        st.markdown("---")
+
+        # Get AI advice button
+        if st.button("💡 Get AI Financial Advice", key="get_ai_advice"):
+            with st.spinner("Analyzing your budget..."):
+                advice = get_ai_financial_advice(summary, advice_month, selected_year)
+                st.success("Here's your personalized advice:")
+
+                # Display advice in a nice format
+                st.markdown(f"""
+                <div style='background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #667eea;'>
+                    {advice.replace('\n', '<br>')}
+                </div>
+                """, unsafe_allow_html=True)
+    else:
+        st.warning(f"No budget data found for {advice_month} {selected_year}. Please add budget data first to get AI advice.")
+
 elif menu == "Settings":
     st.title("Settings")
     
