@@ -158,7 +158,8 @@ with st.sidebar:
     selected_year = st.selectbox(
         "Select Year",
         all_years,
-        index=0
+        index=0,
+        key="sidebar_year_select"
     )
 
     # Navigation
@@ -173,7 +174,8 @@ with st.sidebar:
     selected_month = st.selectbox(
         "Select Month",
         MONTHS,
-        index=datetime.now().month - 1
+        index=datetime.now().month - 1,
+        key="sidebar_month_select"
     )
     
     st.markdown("---")
@@ -1005,7 +1007,7 @@ elif menu == "AI Advisor":
     st.markdown("Get personalized financial advice based on your budget data.")
 
     # Select month for advice
-    advice_month = st.selectbox("Select Month", MONTHS, index=datetime.now().month - 1)
+    advice_month = st.selectbox("Select Month", MONTHS, index=datetime.now().month - 1, key="ai_advisor_month_select")
 
     # Get budget data for the selected month and year
     month_id = get_month_id(advice_month)
