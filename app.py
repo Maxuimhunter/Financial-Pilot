@@ -1011,7 +1011,13 @@ elif menu == "AI Advisor":
 
     # Get budget data for the selected month and year
     month_id = get_month_id(advice_month)
-    df = db_utils.get_month_budget(month_id, selected_year)
+    budget_data = db_utils.get_month_budget(month_id, selected_year)
+
+    # Convert list to DataFrame
+    if budget_data:
+        df = pd.DataFrame(budget_data)
+    else:
+        df = pd.DataFrame()
 
     if not df.empty:
         # Calculate summary
