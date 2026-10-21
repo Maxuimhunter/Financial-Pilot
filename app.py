@@ -1032,9 +1032,10 @@ elif menu == "AI Advisor":
                 st.success("Here's your personalized advice:")
 
                 # Display advice in a nice format
+                formatted_advice = advice.replace('\n', '<br>')
                 st.markdown(f"""
                 <div style='background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #667eea;'>
-                    {advice.replace('\n', '<br>')}
+                    {formatted_advice}
                 </div>
                 """, unsafe_allow_html=True)
     else:

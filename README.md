@@ -31,8 +31,8 @@ A comprehensive personal finance application built with Streamlit that helps you
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/Maxuimhunter/Financial-Pilot
-   cd budget-tracker
+   git clone https://github.com/Maxuimhunter/Financial-Pilot.git
+   cd Financial-Pilot
    ```
 
 2. **Configure environment variables**
@@ -51,8 +51,8 @@ A comprehensive personal finance application built with Streamlit that helps you
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/Maxuimhunter/Financial-Pilot/blob/main/README.md
-   cd budget-tracker
+   git clone https://github.com/Maxuimhunter/Financial-Pilot.git
+   cd Financial-Pilot
    ```
 
 2. **Create and activate a virtual environment** (recommended)
