@@ -165,8 +165,8 @@ with st.sidebar:
     # Navigation
     menu = option_menu(
         menu_title=None,
-        options=["Monthly Budget", "Annual Overview", "AI Advisor", "Settings"],
-        icons=["calendar-month", "graph-up", "robot", "gear"],
+        options=["Monthly Budget", "Annual Overview", "Vendor Spending", "AI Advisor", "Settings"],
+        icons=["calendar-month", "graph-up", "shop", "robot", "gear"],
         default_index=0
     )
 
@@ -1001,6 +1001,95 @@ elif menu == "Annual Overview":
                 "Difference": st.column_config.NumberColumn("Difference ($)", format="%.2f")
             }
         )
+
+elif menu == "Vendor Spending":
+    st.title("🏪 Vendor/Spending Analysis")
+    st.markdown("Track your spending by vendor/business from expense descriptions.")
+
+    # Get all expenses for the selected year
+    expenses = db_utils.get_expenses_by_year(selected_year)
+
+    if expenses:
+        # Convert to DataFrame
+        df = pd.DataFrame(expenses)
+
+        # Extract vendor names from descriptions (simple extraction)
+        # Assuming vendor is the first word or first few words in description
+        df['vendor'] = df['description'].apply(lambda x: x.split()[0] if x else 'Unknown')
+
+        # Aggregate spending by vendor
+        vendor_spending = df.groupby('vendor')['amount'].sum().sort_values(ascending=False)
+
+        # Display summary metrics
+        st.subheader(f"Vendor Summary for {selected_year}")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Total Vendors", len(vendor_spending))
+        col2.metric("Total Spending", f"${df['amount'].sum():,.2f}")
+        col3.metric("Top Vendor", vendor_spending.index[0] if len(vendor_spending) > 0 else "N/A")
+
+        st.markdown("---")
+
+        # Top 10 vendors by spending
+        st.subheader("Top 10 Vendors by Spending")
+        top_vendors = vendor_spending.head(10)
+
+        fig_top_vendors = px.bar(
+            x=top_vendors.values,
+            y=top_vendors.index,
+            orientation='h',
+            title="Top 10 Vendors",
+            labels={'x': 'Amount ($)', 'y': 'Vendor'},
+            color=top_vendors.values,
+            color_continuous_scale='Viridis'
+        )
+        fig_top_vendors.update_layout(height=500)
+        st.plotly_chart(fig_top_vendors, use_container_width=True)
+
+        # Vendor spending pie chart
+        st.subheader("Spending Distribution by Vendor")
+        fig_pie = px.pie(
+            values=top_vendors.values,
+            names=top_vendors.index,
+            title="Top 10 Vendors Distribution"
+        )
+        st.plotly_chart(fig_pie, use_container_width=True)
+
+        # Detailed vendor table
+        st.subheader("All Vendor Spending")
+        vendor_df = pd.DataFrame({
+            'Vendor': vendor_spending.index,
+            'Total Spent': vendor_spending.values,
+            'Percentage': (vendor_spending.values / vendor_spending.sum() * 100).round(2)
+        })
+        st.dataframe(
+            vendor_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Total Spent": st.column_config.NumberColumn("Total Spent ($)", format="%.2f"),
+                "Percentage": st.column_config.NumberColumn("Percentage (%)", format="%.2f")
+            }
+        )
+
+        # Vendor spending by category
+        st.subheader("Vendor Spending by Category")
+        vendor_category = df.groupby(['vendor', 'category'])['amount'].sum().reset_index()
+        top_vendor_category = vendor_category.sort_values('amount', ascending=False).head(15)
+
+        fig_vcat = px.bar(
+            top_vendor_category,
+            x='amount',
+            y='vendor',
+            color='category',
+            title="Top 15 Vendor-Category Combinations",
+            labels={'amount': 'Amount ($)', 'vendor': 'Vendor', 'category': 'Category'},
+            orientation='h'
+        )
+        fig_vcat.update_layout(height=600, yaxis={'categoryorder': 'total ascending'})
+        st.plotly_chart(fig_vcat, use_container_width=True)
+
+    else:
+        st.warning(f"No expense data found for {selected_year}. Please add expenses first to see vendor spending analysis.")
 
 elif menu == "AI Advisor":
     st.title("🤖 AI Financial Advisor")

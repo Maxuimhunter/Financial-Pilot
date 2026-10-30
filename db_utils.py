@@ -305,16 +305,42 @@ def delete_expense(expense_id):
     connection = create_connection()
     if connection is None:
         return False
-    
+
     try:
         cursor = connection.cursor()
         cursor.execute("DELETE FROM expenses WHERE id = %s", (expense_id,))
         connection.commit()
         return cursor.rowcount > 0
-        
+
     except Error as e:
         print(f"Error deleting expense: {e}")
         return False
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+def get_expenses_by_year(year=2026):
+    """Get all expenses for a specific year."""
+    connection = create_connection()
+    if connection is None:
+        return []
+
+    try:
+        year = int(year)
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+        SELECT id, category, description, amount, expense_date, created_at
+        FROM expenses
+        WHERE year = %s
+        ORDER BY expense_date DESC
+        """, (year,))
+
+        return cursor.fetchall()
+
+    except Error as e:
+        print(f"Error fetching expenses by year: {e}")
+        return []
     finally:
         if connection.is_connected():
             cursor.close()
