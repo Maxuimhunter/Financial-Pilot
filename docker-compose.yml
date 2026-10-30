@@ -36,6 +36,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-budget_password}
       DB_NAME: ${DB_NAME:-budget_tracker}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      AI_API_ENDPOINT: ${AI_API_ENDPOINT:-http://host.docker.internal:12434/engines/v1/chat/completions}
     depends_on:
       mysql:
         condition: service_healthy

@@ -7,7 +7,7 @@ from streamlit_option_menu import option_menu
 import os
 import warnings
 from dotenv import load_dotenv
-from openai import OpenAI
+import requests
 
 # Suppress FutureWarning for pandas concat
 warnings.filterwarnings('ignore', category=FutureWarning)
@@ -96,15 +96,10 @@ def calculate_summary(df):
         }
 
 def get_ai_financial_advice(budget_data, month, year):
-    """Get AI-powered financial advice using ChatGPT."""
-    api_key = os.getenv('OPENAI_API_KEY')
-
-    if not api_key:
-        return "OpenAI API key not found. Please add OPENAI_API_KEY to your .env file."
+    """Get AI-powered financial advice using local SmolLM2 model."""
+    api_endpoint = os.getenv('AI_API_ENDPOINT', 'http://localhost:12434/engines/v1/chat/completions')
 
     try:
-        client = OpenAI(api_key=api_key)
-
         # Format budget data for the prompt
         budget_summary = f"""
 Budget for {month} {year}:
@@ -128,17 +123,22 @@ Focus on:
 Keep your response under 200 words and use bullet points.
 """
 
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
+        # Make HTTP request to local AI model
+        payload = {
+            "model": "ai/smollm2:360M-Q4_K_M",
+            "messages": [
                 {"role": "system", "content": "You are a helpful financial advisor."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=300,
-            temperature=0.7
-        )
+            "max_tokens": 300,
+            "temperature": 0.7
+        }
 
-        return response.choices[0].message.content
+        response = requests.post(api_endpoint, json=payload, timeout=30)
+        response.raise_for_status()
+
+        result = response.json()
+        return result['choices'][0]['message']['content']
 
     except Exception as e:
         return f"Error getting AI advice: {str(e)}"
@@ -1015,7 +1015,11 @@ elif menu == "Vendor Spending":
 
         # Extract vendor names from descriptions (simple extraction)
         # Assuming vendor is the first word or first few words in description
-        df['vendor'] = df['description'].apply(lambda x: x.split()[0] if x else 'Unknown')
+        # Convert to lowercase for case-insensitive grouping
+        df['vendor'] = df['description'].apply(lambda x: x.split()[0].lower() if x else 'Unknown')
+
+        # Convert amounts to float to avoid Decimal type issues
+        df['amount'] = df['amount'].astype(float)
 
         # Aggregate spending by vendor
         vendor_spending = df.groupby('vendor')['amount'].sum().sort_values(ascending=False)
@@ -1025,7 +1029,8 @@ elif menu == "Vendor Spending":
         col1, col2, col3 = st.columns(3)
         col1.metric("Total Vendors", len(vendor_spending))
         col2.metric("Total Spending", f"${df['amount'].sum():,.2f}")
-        col3.metric("Top Vendor", vendor_spending.index[0] if len(vendor_spending) > 0 else "N/A")
+        top_vendor_name = vendor_spending.index[0].title() if len(vendor_spending) > 0 else "N/A"
+        col3.metric("Top Vendor", top_vendor_name)
 
         st.markdown("---")
 
@@ -1035,7 +1040,7 @@ elif menu == "Vendor Spending":
 
         fig_top_vendors = px.bar(
             x=top_vendors.values,
-            y=top_vendors.index,
+            y=top_vendors.index.str.title(),  # Convert to title case for display
             orientation='h',
             title="Top 10 Vendors",
             labels={'x': 'Amount ($)', 'y': 'Vendor'},
@@ -1049,7 +1054,7 @@ elif menu == "Vendor Spending":
         st.subheader("Spending Distribution by Vendor")
         fig_pie = px.pie(
             values=top_vendors.values,
-            names=top_vendors.index,
+            names=top_vendors.index.str.title(),  # Convert to title case for display
             title="Top 10 Vendors Distribution"
         )
         st.plotly_chart(fig_pie, use_container_width=True)
@@ -1057,9 +1062,9 @@ elif menu == "Vendor Spending":
         # Detailed vendor table
         st.subheader("All Vendor Spending")
         vendor_df = pd.DataFrame({
-            'Vendor': vendor_spending.index,
-            'Total Spent': vendor_spending.values,
-            'Percentage': (vendor_spending.values / vendor_spending.sum() * 100).round(2)
+            'Vendor': vendor_spending.index.str.title(),  # Convert to title case for display
+            'Total Spent': vendor_spending.values.astype(float),
+            'Percentage': ((vendor_spending.values.astype(float) / vendor_spending.sum().astype(float)) * 100).round(2)
         })
         st.dataframe(
             vendor_df,
@@ -1074,6 +1079,8 @@ elif menu == "Vendor Spending":
         # Vendor spending by category
         st.subheader("Vendor Spending by Category")
         vendor_category = df.groupby(['vendor', 'category'])['amount'].sum().reset_index()
+        vendor_category['amount'] = vendor_category['amount'].astype(float)
+        vendor_category['vendor'] = vendor_category['vendor'].str.title()  # Convert to title case for display
         top_vendor_category = vendor_category.sort_values('amount', ascending=False).head(15)
 
         fig_vcat = px.bar(

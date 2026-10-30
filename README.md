@@ -164,10 +164,11 @@ A comprehensive personal finance application built with Streamlit that helps you
 - Year-specific data isolation (switching years doesn't affect other years)
 
 ### AI Financial Advisor
-- Get personalized financial advice powered by ChatGPT
+- Get personalized financial advice powered by local AI model (SmolLM2)
 - Analyzes your budget data and provides actionable recommendations
 - Focuses on spending patterns, savings, and areas for improvement
-- Requires OpenAI API key (add to .env file)
+- Uses local Docker-based AI model for privacy and cost efficiency
+- Requires local AI model running on port 12434 (or configured endpoint)
 
 ## Database Schema
 
